@@ -137,8 +137,10 @@ SELECT Facilities.name, SUM(Bookings.slots * (
 		)
 	) 
 	AS revenue
-FROM Bookings 
-INNER JOIN Facilities ON Bookings.facid = Facilities.facid
-GROUP BY Facilities.name
-HAVING revenue < 1000
+	FROM 
+		Bookings 
+		INNER JOIN Facilities 
+			ON Bookings.facid = Facilities.facid
+		GROUP BY Facilities.name
+	HAVING revenue < 1000
 ORDER BY revenue
