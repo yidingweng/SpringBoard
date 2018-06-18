@@ -31,14 +31,20 @@ SELECT * FROM Facilities WHERE membercost != 0
 
 /* Q2: How many facilities do not charge a fee to members? */
 
-SELECT COUNT(*) FROM Facilities WHERE membercost != 0
+SELECT COUNT(*) FROM Facilities WHERE membercost = 0
 
 /* Q3: How can you produce a list of facilities that charge a fee to members,
 where the fee is less than 20% of the facility's monthly maintenance cost?
 Return the facid, facility name, member cost, and monthly maintenance of the
 facilities in question. */
 
-SELECT facid, name, membercost, monthlymaintenance FROM Facilities WHERE membercost !=0 AND membercost  < .2*monthlymaintenance
+SELECT facid, 
+			   name, 
+			   membercost, 
+               monthlymaintenance 
+FROM Facilities 
+WHERE membercost > 0 
+	  AND membercost  < .2*monthlymaintenance
 
 
 /* Q4: How can you retrieve the details of facilities with ID 1 and 5?
@@ -55,13 +61,15 @@ SELECT facid, name,
 CASE
     WHEN monthlymaintenance > 100 THEN "Expensive"
     ELSE "Cheap"
-END
+END AS cost
 FROM Facilities
 
 /* Q6: You'd like to get the first and last name of the last member(s)
 who signed up. Do not use the LIMIT clause for your solution. */
 
-SELECT firstname, surname FROM Members WHERE joindate=(SELECT MAX(joindate) FROM Members)
+SELECT firstname, surname 
+FROM Members 
+WHERE joindate=(SELECT MAX(joindate) FROM Members)
 
 
 /* Q7: How can you produce a list of all members who have used a tennis court?
@@ -69,7 +77,16 @@ Include in your output the name of the court, and the name of the member
 formatted as a single column. Ensure no duplicate data, and order by
 the member name. */
 
-SELECT CONCAT(Members.firstname,' ',Members.surname) AS MemberName, Facilities.name  FROM Members, Facilities WHERE Facilities.facid IN (0,1) GROUP BY MemberName ORDER By MemberName
+SELECT CONCAT(Members.firstname,' ',Members.surname) AS MemberName, 
+Facilities.name  AS court
+				FROM Bookings
+				JOIN Facilities
+						ON Bookings.facid = Facilities.facid
+				JOIN Members
+						ON Bookings.memid = Members.memid
+WHERE Bookings.memid != 0 AND Facilities.name LIKE 'TENNIS COURT%'
+GROUP BY 1,2
+ORDER BY 2
 
 /* Q8: How can you produce a list of bookings on the day of 2012-09-14 which
 will cost the member (or guest) more than $30? Remember that guests have
@@ -81,7 +98,7 @@ Order by descending cost, and do not use any subqueries. */
 SELECT CONCAT(Members.firstname,' ',Members.surname) AS MemberName, 
 	Facilities.name, 
 	CASE 
-		WHEN Members.memid = 0 THEN
+		WHEN firstname = 'GUEST' THEN
 			Bookings.slots*Facilities.guestcost
 		ELSE
 			Bookings.slots*Facilities.membercost
@@ -95,8 +112,8 @@ SELECT CONCAT(Members.firstname,' ',Members.surname) AS MemberName,
         WHERE
 		Bookings.starttime >= '2012-09-14' AND 
 		Bookings.starttime < '2012-09-15' AND (
-			(Members.memid = 0 AND Bookings.slots*Facilities.guestcost > 30) OR
-			(Members.memid != 0 AND Bookings.slots*Facilities.membercost > 30)
+			(firstname = 'GUEST' AND Bookings.slots*Facilities.guestcost > 30) OR
+			(firstname != 'GUEST' AND Bookings.slots*Facilities.membercost > 30)
 		)
 ORDER BY cost DESC; 
 
@@ -107,7 +124,7 @@ SELECT MemberName, facility, cost from (
 		CONCAT(Members.firstname,' ',Members.surname) AS MemberName,
 		Facilities.name AS facility,
 		CASE
-			WHEN Members.memid = 0 THEN
+			WHEN firstname = 'GUEST' THEN
 				Bookings.slots*Facilities.guestcost
 			ELSE
 				Bookings.slots*Facilities.membercost
@@ -131,7 +148,7 @@ that there's a different cost for guests and members! */
 
 SELECT Facilities.name, SUM(Bookings.slots * (
 	CASE 
-    	WHEN Bookings.memid = 0 THEN 
+    	WHEN firstname = 'GUEST' THEN 
     		Facilities.guestcost 
     	ELSE Facilities.membercost END
 		)
